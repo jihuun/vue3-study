@@ -91,10 +91,19 @@ async function fetchRecordings() {
   playing.value = false
   duration.value = 0
   currentTime.value = 0
+  const per_page = 20
+  const page = 1
+
+  console.time("search time");
   try {
     const q = encodeURIComponent(query.value.trim())
     // en:"q" 형식 쿼리를 사용 + key 파라미터
-    const url = `${API_BASE}?query=en:"${q}"&key=${API_KEY}`
+    //const url = `${API_BASE}?query=sp:"${q}"&key=${API_KEY}` // sp:
+    //const url = `${API_BASE}?query=sp:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+    //const url = `${API_BASE}?query=en:"${q}"&key=${API_KEY}` // en:
+    //const url = `${API_BASE}?query=en:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+    // 영명검색, quality A, 길이 300초 이하
+    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<300"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json'
@@ -108,14 +117,15 @@ async function fetchRecordings() {
       error.value = '녹음이 없습니다.'
       return
     }
-    // 최대 5개만 취함
-    recordings.value = json.recordings.slice(0, 5)
+    // 녹음 목록 표기 갯수
+    recordings.value = json.recordings.slice(0, 20)
   } catch (e) {
     console.error(e)
     error.value = e.message || String(e)
   } finally {
     loading.value = false
   }
+  console.timeEnd("search time");
 }
 
 // 녹음 선택 / 재생 토글
