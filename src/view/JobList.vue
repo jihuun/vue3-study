@@ -1,65 +1,52 @@
 <template>
-  <div class="xc-player">
-    <h2>Bird Sound Player</h2>
-    <br></br>
-    <label>
-      새 이름 검색(영명):
-    </label>
-      <input v-model="query" @keyup.enter="fetchRecordings" placeholder="예: Parus major" />
-    <div>
-      <button @click="fetchRecordings">검색</button>
-    </div>
-    <div v-if="loading">로딩 중...</div>
-    <div v-if="error" class="error">에러: {{ error }}</div>
-
-    <div v-if="currentRec" class="player-controls">
-      <audio
-        ref="audioEl"
-        :src="audioSrc"
-        preload="auto"
-        @timeupdate="onTimeUpdate"
-        @ended="onEnded"
-      ></audio>
-
-      <input
-        type="range"
-        min="0"
-        :max="duration"
-        step="0.1"
-        v-model.number="currentTime"
-        @input="seek"
-      />
-      <div>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</div>
-      <div>
-        <a :href="audioSrc" target="_blank">원본 파일 열기</a>
-      </div>
-    </div>
-
-    <div v-if="recordings.length > 0" class="recording-list">
-      <div
-        v-for="(rec, idx) in recordings"
-        :key="rec.id || idx"
-        class="recording-item"
-      >
-        <div class="info">
-          <strong>{{ idx + 1 }}.</strong>
-          {{ rec.en || (rec.gen + ' ' + rec.sp) }}
-          — {{ rec.rec }} / {{ rec.loc }}
-          ({{ rec.length }}초)
+    <div class="xc-player">
+        <h2>Bird Sound Player</h2>
+        <br></br>
+        <label>
+            새 이름 검색(영명):
+        </label>
+        <input v-model="query" @keyup.enter="fetchRecordings" placeholder="예: Parus major" />
+        <div>
+            <button @click="fetchRecordings">검색</button>
         </div>
-        <div class="controls">
-          <button @click="selectRecording(idx)">
-            {{ currentIndex === idx && playing ? '일시정지' : '▶ 재생' }}
-          </button>
+        <div class="flex items-center space-x-2">
+            <label for="loop-toggle" class="text-sm font-medium">연속 재생</label>
+            <input id="loop-toggle" type="checkbox" v-model="isLooping" class="toggle-switch" />
         </div>
-      </div>
-    </div>
+        <div v-if="loading">로딩 중...</div>
+        <div v-if="error" class="error">에러: {{ error }}</div>
 
-  </div>
+        <div v-if="currentRec" class="player-controls">
+            <audio ref="audioEl" :src="audioSrc" preload="auto" @timeupdate="onTimeUpdate" @ended="onEnded"></audio>
+
+            <input type="range" min="0" :max="duration" step="0.1" v-model.number="currentTime" @input="seek" />
+            <div>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</div>
+            <div>
+                <a :href="audioSrc" target="_blank">원본 파일 열기</a>
+            </div>
+        </div>
+
+        <div v-if="recordings.length > 0" class="recording-list">
+            <div v-for="(rec, idx) in recordings" :key="rec.id || idx" class="recording-item">
+                <div class="info">
+                    <strong>{{ idx + 1 }}.</strong>
+                    {{ rec.en || (rec.gen + ' ' + rec.sp) }}
+                    — {{ rec.rec }} / {{ rec.loc }}
+                    ({{ rec.length }}초)
+                </div>
+                <div class="controls">
+                    <button @click="selectRecording(idx)">
+                        {{ currentIndex === idx && playing ? '❚ ❚ 일시정지' : '▶ 재생' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onBeforeUnmount } from 'vue'
+import { ref, reactive, nextTick, onBeforeUnmount, watch } from 'vue'
 
 const query = ref('Great tit')
 const loading = ref(false)
@@ -75,6 +62,19 @@ const playing = ref(false)
 const duration = ref(0)
 const currentTime = ref(0)
 let audio = null
+const continuousPlay = ref(false)
+const isLooping = ref(false)
+
+// 상태가 바뀔 때 처리 로직
+watch(isLooping, (newVal) => {
+  if (newVal) {
+    console.log('연속 재생 켜짐')
+    continuousPlay.value = true;
+  } else {
+    console.log('연속 재생 꺼짐')
+    continuousPlay.value = false;
+  }
+})
 
 const API_BASE = 'https://xeno-canto.org/api/3/recordings'
 // 실제 API 키가 필요하면 아래처럼 사용
@@ -103,7 +103,7 @@ async function fetchRecordings() {
     //const url = `${API_BASE}?query=en:"${q}"&key=${API_KEY}` // en:
     //const url = `${API_BASE}?query=en:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     // 영명검색, quality A, 길이 300초 이하
-    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<300"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<60"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json'
@@ -183,7 +183,13 @@ function seek() {
 
 // 종료 이벤트
 function onEnded() {
-  playing.value = false
+    playing.value = false
+    if (continuousPlay.value) {
+        const nextIndex = currentIndex.value + 1
+        if (nextIndex < recordings.value.length) {
+            selectRecording(nextIndex)
+        }
+    }
 }
 
 // 시간 포맷
@@ -229,5 +235,32 @@ onBeforeUnmount(() => {
 .error {
   color: red;
   margin-top: 0.5rem;
+}
+.toggle-switch {
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background: #ccc;
+  border-radius: 9999px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.toggle-switch:checked {
+  background: #4ade80; /* 초록색 */
+}
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+.toggle-switch:checked::before {
+  transform: translateX(20px);
 }
 </style>
