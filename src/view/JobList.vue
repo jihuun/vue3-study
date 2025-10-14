@@ -103,7 +103,7 @@ async function fetchRecordings() {
     //const url = `${API_BASE}?query=en:"${q}"&key=${API_KEY}` // en:
     //const url = `${API_BASE}?query=en:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     // 영명검색, quality A, 길이 300초 이하
-    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<60"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<300"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json'
