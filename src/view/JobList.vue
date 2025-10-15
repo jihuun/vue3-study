@@ -1,5 +1,5 @@
 <template>
-    <div class="xc-player" v-if="isLogin" >
+    <div class="xc-player" v-if="isLogin">
         <h2>Bird Sound Player</h2>
         <br></br>
         <label>
@@ -16,22 +16,20 @@
         <div v-if="loading">로딩 중...</div>
         <div v-if="error" class="error">에러: {{ error }}</div>
 
-        <div v-if="currentRec" class="player-controls">
-            <audio ref="audioEl" :src="audioSrc" preload="auto" @timeupdate="onTimeUpdate" @ended="onEnded"></audio>
-
-            <input type="range" min="0" :max="duration" step="0.1" v-model.number="currentTime" @input="seek" />
-            <div>{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</div>
+        <div v-if="currentRec" class="player-controls" style="width: 100%;">
             <div>
-                <a :href="audioSrc" target="_blank">원본 파일 열기</a>
+                <img :src="`https:${currentRec.sono.med}`" alt="Sonogram" class="w-full max-w-md my-2 cursor-pointer" />
             </div>
+
+            <audio ref="audioEl" :src="audioSrc" preload="auto" @timeupdate="onTimeUpdate" @ended="onEnded" controls></audio>
         </div>
 
         <div v-if="recordings.length > 0" class="recording-list">
             <div v-for="(rec, idx) in recordings" :key="rec.id || idx" class="recording-item">
                 <div class="info">
                     <strong>{{ idx + 1 }}.</strong>
-                    {{ rec.en || (rec.gen + ' ' + rec.sp) }}
-                    — {{ rec.rec }} / {{ rec.loc }}
+                    {{ rec.en || (rec.gen + ' ' + rec.sp) }} ({{ rec.type }})
+                    — {{ rec.cnt }} / {{ rec.date }} / by {{ rec.rec }} /
                     ({{ rec.length }}초)
                 </div>
                 <div class="controls">
@@ -163,7 +161,7 @@ function selectRecording(idx) {
   currentIndex.value = idx
   currentRec.value = rec
   // 오디오 URL 필드명은 응답 구조에 따라 조정
-  audioSrc.value = rec.file || rec.audio || rec.audio_url || ''
+  audioSrc.value = rec.file || ''
 
   // 재생 전에 오디오를 bind
   attachAudio().then(() => {
