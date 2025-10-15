@@ -1,5 +1,5 @@
 <template>
-    <div class="xc-player">
+    <div class="xc-player" v-if="isLogin" >
         <h2>Bird Sound Player</h2>
         <br></br>
         <label>
@@ -46,7 +46,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, reactive, nextTick, onBeforeUnmount, watch } from 'vue'
+import supabase from '../supabase';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 const query = ref('Great tit')
 const loading = ref(false)
@@ -64,6 +67,22 @@ const currentTime = ref(0)
 let audio = null
 const continuousPlay = ref(false)
 const isLooping = ref(false)
+
+const isLogin = ref(false);
+onMounted(async () => {
+    const { data: {user} } = await supabase.auth.getUser();
+
+    if (user) {
+        isLogin.value = true;
+        console.log('User is logged in:');
+        console.log(user.email);
+    } else {
+        isLogin.value = false;
+        console.log('No user logged in');
+        alert('로그인이 필요합니다.');
+        router.push('/');  /* 로그인 페이지로 이동 */
+    }
+});
 
 // 상태가 바뀔 때 처리 로직
 watch(isLooping, (newVal) => {

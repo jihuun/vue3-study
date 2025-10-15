@@ -1,5 +1,5 @@
 <script setup>
-    import { ref } from 'vue';
+    import { onMounted, ref } from 'vue';
     import supabase from '../supabase.js';
     import { useRouter } from 'vue-router';
 
@@ -7,6 +7,17 @@
     const password = ref('');
     const isLoading = ref(false);
     const router = useRouter();
+
+    onMounted(async () => {
+        const { data: {user} } = await supabase.auth.getUser();
+
+        if (user) {
+            console.log('User is logged in: ' + user.email);
+            router.push('/job-list');  /* Main 페이지로 이동 */
+        } else {
+            console.log('Need to log in');
+        }
+    });
 
     const handleLogin = async () => {
         isLoading.value = true;
