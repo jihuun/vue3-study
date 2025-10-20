@@ -30,7 +30,7 @@
         } else {
             alert('Login successful!');
             isLoading.value = false;
-            router.push('/job-list');  /* 채용공고 페이지로 이동 */
+            router.push('/bird-sound');  /* Main 페이지로 이동 */
         }
     }
 </script>
