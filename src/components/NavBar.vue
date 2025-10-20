@@ -30,6 +30,9 @@
             case '/user-profile':
                 title.value = '프로필';
                 break;
+            case '/bird-sound':
+                title.value = 'Bird Sound Player';
+                break;
             default:
                 title = '';
         }
@@ -40,56 +43,43 @@
     <nav>
         <h1>{{ title }}</h1>
         <!-- x 닫기 버튼 -->
-        <router-link 
-            v-if="currentPath === '/' 
-                || currentPath === '/signup' 
-                || currentPath === '/job-post'"
-            to="/job-list"
-            class="btn-close"
-        >
-            <Icon icon="material-symbols:close"
-                width="24"
-                height="24"
-                style="color: #1e1e1e"
-            />
+        <router-link v-if="currentPath === '/'
+                || currentPath === '/signup'
+                || currentPath === '/job-post'" to="/job-list" class="btn-close">
+            <Icon icon="material-symbols:close" width="24" height="24" style="color: #1e1e1e" />
         </router-link>
 
         <!-- 뒤로가기 버튼 -->
-        <router-link 
-            v-if="currentPath === '/job-detail' || currentPath === '/user-profile'"
-            to="/job-list"
-            class="btn-close"
-        >
-            <Icon 
-                icon="ic:baseline-arrow-back" 
-                width="24" 
-                height="24"  
-                style="color: 1e1e1e" 
-            />
+        <router-link v-if="currentPath === '/job-detail' ||
+            currentPath === '/user-profile' ||
+            currentPath === '/bird-sound'" to="/job-list"
+            class="btn-close">
+            <Icon icon="ic:baseline-arrow-back" width="24" height="24" style="color: 1e1e1e" />
         </router-link>
 
+        <div class="right-icons" v-if="currentPath === '/bird-sound'">
+            <router-link to="/bird-sound">
+                <Icon icon="ph:bird-bold" width="24" height="24" />
+            </router-link>
+            <router-link to="/user-profile">
+                <Icon icon="teenyicons:user-circle-solid" width="24" height="24" style="color: 1e1e1e" />
+            </router-link>
+        </div>
 
         <!-- job-list 우측에 배치되는 프로필, 글쓰기 아이콘 -->
         <div class="right-icons" v-if="currentPath === '/job-list'">
+            <router-link to="/bird-sound">
+                <Icon icon="ph:bird-bold" width="24" height="24" />
+            </router-link>
             <router-link to="/user-profile">
-                <Icon 
-                    icon="teenyicons:user-circle-solid" 
-                    width="24" 
-                    height="24"  
-                    style="color: 1e1e1e" 
-                />
+                <Icon icon="teenyicons:user-circle-solid" width="24" height="24" style="color: 1e1e1e" />
             </router-link>
             <router-link to="/job-post">
-                <Icon 
-                    icon="mdi:pencil-outline"  
-                    width="24" 
-                    height="24"  
-                    style="color: 1e1e1e" 
-                />
+                <Icon icon="mdi:pencil-outline" width="24" height="24" style="color: 1e1e1e" />
             </router-link>
         </div>
     </nav>
-</template>         
+</template>
 
 <style lang="scss" scoped>
   nav {
@@ -111,7 +101,7 @@
       left: 15px;
       text-decoration: none;
     }
-  }  
+  }
 
   .right-icons {
     position: absolute;

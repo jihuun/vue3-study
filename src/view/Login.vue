@@ -13,7 +13,7 @@
 
         if (user) {
             console.log('User is logged in: ' + user.email);
-            router.push('/job-list');  /* Main 페이지로 이동 */
+            router.push('/bird-sound');  /* Main 페이지로 이동 */
         } else {
             console.log('Need to log in');
         }

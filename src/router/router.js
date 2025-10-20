@@ -5,31 +5,36 @@ import JobList from '../view/JobList.vue'
 import JobDetail from '../view/JobDetail.vue'
 import JobPost from '../view/JobPost.vue'
 import UserProfile from '../view/UserProfile.vue'
+import BirdSound from '../view/BirdSound.vue'
 
  const routes = [
-    { 
-        path: '/', 
-        component: Login 
+    {
+        path: '/',
+        component: Login
     },
-    { 
-        path: '/signup', 
-        component: SignUp 
+    {
+        path: '/signup',
+        component: SignUp
     },
-    { 
-        path: '/job-post', 
+    {
+        path: '/job-post',
         component: JobPost
     },
-    { 
-        path: '/job-list', 
+    {
+        path: '/job-list',
         component: JobList
-    },  
-    { 
-        path: '/job-detail', 
+    },
+    {
+        path: '/job-detail',
         component: JobDetail
     },
-    { 
-        path: '/user-profile', 
+    {
+        path: '/user-profile',
         component: UserProfile
+    },
+    {
+        path: '/bird-sound',
+        component: BirdSound
     },
  ]
 
