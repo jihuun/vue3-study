@@ -1,8 +1,17 @@
 <template>
     <div class="xc-player" v-if="isLogin">
-        <label>
-            새 이름 검색(영명):
-        </label>
+        <div class="sound-row">
+            <span class="label-text"><label>새이름 검색(영명):</label></span>
+            <label class="checkbox-label">
+                Call
+                <input type="checkbox" v-model="callChecked" />
+            </label>
+            <label class="checkbox-label">
+                Song
+                <input type="checkbox" v-model="songChecked" />
+            </label>
+        </div>
+
         <input v-model="query" @keyup.enter="fetchRecordings" placeholder="예: Parus major" />
         <div>
             <button @click="fetchRecordings">검색</button>
@@ -19,7 +28,8 @@
                 <img :src="`https:${currentRec.sono.med}`" alt="Sonogram" class="w-full max-w-md my-2 cursor-pointer" />
             </div>
 
-            <audio ref="audioEl" :src="audioSrc" preload="auto" @timeupdate="onTimeUpdate" @ended="onEnded" controls></audio>
+            <audio ref="audioEl" :src="audioSrc" preload="auto" @timeupdate="onTimeUpdate" @ended="onEnded"
+                controls></audio>
         </div>
 
         <div v-if="recordings.length > 0" class="recording-list">
@@ -80,6 +90,20 @@ onMounted(async () => {
     }
 });
 
+const callChecked = ref(true)
+const songChecked = ref(true)
+const soundType = ref('')
+
+watch([callChecked, songChecked], ([call, song]) => {
+  if (call && !song) {
+    soundType.value = 'call'
+  } else if (!call && song) {
+    soundType.value = 'song'
+  } else {
+    soundType.value = ''
+  }
+})
+
 // 상태가 바뀔 때 처리 로직
 watch(isLooping, (newVal) => {
   if (newVal) {
@@ -108,17 +132,33 @@ async function fetchRecordings() {
   currentTime.value = 0
   const per_page = 20
   const page = 1
+  const resut_count = 25
 
   console.time("search time");
   try {
-    const q = encodeURIComponent(query.value.trim())
+    const query_enc = encodeURIComponent(query.value.trim())
     // en:"q" 형식 쿼리를 사용 + key 파라미터
     //const url = `${API_BASE}?query=sp:"${q}"&key=${API_KEY}` // sp:
     //const url = `${API_BASE}?query=sp:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     //const url = `${API_BASE}?query=en:"${q}"&key=${API_KEY}` // en:
     //const url = `${API_BASE}?query=en:"${q}"&per_page=${per_page}&page=${page}&key=${API_KEY}`
     // 영명검색, quality A, 길이 300초 이하
-    const url = `${API_BASE}?query=en:"${q}"+q:A+len:"<300"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+    //const url = `${API_BASE}?query=en:"${query_enc}"+q:A+len:"<300"&per_page=${per_page}&page=${page}&key=${API_KEY}`
+      const tagOptions = [
+        `en:"${query_enc}"`,
+        `q:">C"`,
+        `len:"<300"`,
+        `type:"${soundType.value}"`,
+      ].join("+");
+
+      const queryParams = [
+          `query=${tagOptions}`,
+          `per_page=${per_page}`,
+          `page=${page}`,
+          `key=${API_KEY}`,
+      ].join("&");
+      const url = `${API_BASE}?${queryParams}`;
+
     const res = await fetch(url, {
       headers: {
         'Accept': 'application/json'
@@ -133,7 +173,7 @@ async function fetchRecordings() {
       return
     }
     // 녹음 목록 표기 갯수
-    recordings.value = json.recordings.slice(0, 20)
+    recordings.value = json.recordings.slice(0, resut_count)
   } catch (e) {
     console.error(e)
     error.value = e.message || String(e)
@@ -277,5 +317,25 @@ onBeforeUnmount(() => {
 }
 .toggle-switch:checked::before {
   transform: translateX(20px);
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;   /* 세로 가운데 정렬 */
+  justify-content: flex-start; /* 왼쪽 정렬 */
+  white-space: nowrap;   /* 줄바꿈 방지 */
+  gap: 30px;             /* 항목 사이 간격 */
+}
+
+.label-text {
+  font-weight: 500;
+  margin-right: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;              /* Call / Song 과 체크박스 간의 거리 */
+  cursor: pointer;
 }
 </style>
