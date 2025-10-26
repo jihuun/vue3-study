@@ -1,20 +1,39 @@
 <template>
     <div class="xc-player" v-if="isLogin">
-        <div class="sound-row">
-            <span class="label-text"><label>새이름 검색(영명):</label></span>
-            <label class="checkbox-label">
-                Call
-                <input type="checkbox" v-model="callChecked" />
-            </label>
-            <label class="checkbox-label">
-                Song
-                <input type="checkbox" v-model="songChecked" />
-            </label>
-        </div>
 
-        <input v-model="query" @keyup.enter="fetchRecordings" placeholder="예: Parus major" />
-        <div>
-            <button @click="fetchRecordings">검색</button>
+        <div id="search-container" class="search-container">
+            <div class="sound-row">
+                <span class="label-text"><label>새이름 검색(영명):</label></span>
+                <label class="checkbox-label">
+                    Call
+                    <input type="checkbox" v-model="callChecked" />
+                </label>
+                <label class="checkbox-label">
+                    Song
+                    <input type="checkbox" v-model="songChecked" />
+                </label>
+            </div>
+
+            <input v-model="query" class="search-input" @focus="showHistory = true" @keyup.enter="fetchRecordings"
+                placeholder="예: March tit" />
+            <transition name="fade">
+                <div v-if="showHistory && searchHistory.length > 0" class="history-dropdown">
+                    <ul>
+                        <li v-for="(item, idx) in searchHistory" :key="idx" @click="handleHistoryClick(item)"
+                            class="history-item">
+                            <span class="query-text">{{ item.query }}</span>
+                            <span class="time-text">
+                                {{ new Date(item.created_at).toLocaleTimeString([], {
+                                    hour: '2-digit', minute: '2-digit'
+                                }) }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </transition>
+            <div>
+                <button @click="fetchRecordings" class="search-button">Search</button>
+            </div>
         </div>
         <div class="flex items-center space-x-2">
             <label for="loop-toggle" class="text-sm font-medium">연속 재생</label>
@@ -55,9 +74,10 @@
 import { ref, onMounted, reactive, nextTick, onBeforeUnmount, watch } from 'vue'
 import supabase from '../supabase';
 import { useRouter } from 'vue-router';
+import { addSearchHistory, getSearchHistory } from '../services/searchHistory.js';
 const router = useRouter();
 
-const query = ref('Great tit')
+const query = ref('Marsh tit')
 const loading = ref(false)
 const error = ref(null)
 
@@ -75,6 +95,9 @@ const continuousPlay = ref(false)
 const isLooping = ref(false)
 
 const isLogin = ref(false);
+
+const showHistory = ref(false)
+
 onMounted(async () => {
     const { data: {user} } = await supabase.auth.getUser();
 
@@ -82,6 +105,9 @@ onMounted(async () => {
         isLogin.value = true;
         console.log('User is logged in:');
         console.log(user.email);
+        searchHistory.value = await getSearchHistory();
+        document.addEventListener('click', handleClickOutside)
+
     } else {
         isLogin.value = false;
         console.log('No user logged in');
@@ -89,6 +115,37 @@ onMounted(async () => {
         router.push('/');  /* 로그인 페이지로 이동 */
     }
 });
+
+onBeforeUnmount(() => {
+  if (audio) {
+    audio.pause()
+    audio.src = ''
+    audio = null
+  }
+  document.removeEventListener('click', handleClickOutside)
+
+})
+const searchHistory= ref([])
+
+async function handleSearch(searchQuery) {
+  if (!searchQuery.value.trim()) return
+  await addSearchHistory(searchQuery.value.trim())
+  searchHistory.value = await getSearchHistory()
+}
+
+// ✅ 외부 클릭 시 dropdown 닫기
+function handleClickOutside(e) {
+  const searchBox = document.getElementById('search-container')
+  if (searchBox && !searchBox.contains(e.target)) {
+    showHistory.value = false
+  }
+}
+
+// ✅ 히스토리 클릭 시
+function handleHistoryClick(item) {
+  query.value = item.query
+  showHistory.value = false
+}
 
 const callChecked = ref(true)
 const songChecked = ref(true)
@@ -135,6 +192,7 @@ async function fetchRecordings() {
   const resut_count = 25
 
   console.time("search time");
+  showHistory.value = false // 검색 시 히스토리 닫기
   try {
     const query_enc = encodeURIComponent(query.value.trim())
     // en:"q" 형식 쿼리를 사용 + key 파라미터
@@ -174,6 +232,11 @@ async function fetchRecordings() {
     }
     // 녹음 목록 표기 갯수
     recordings.value = json.recordings.slice(0, resut_count)
+
+    // 검색어 기록에 추가
+    await handleSearch(query);
+
+
   } catch (e) {
     console.error(e)
     error.value = e.message || String(e)
@@ -255,14 +318,6 @@ function formatTime(sec) {
   const r = s % 60
   return `${m}:${r.toString().padStart(2, '0')}`
 }
-
-onBeforeUnmount(() => {
-  if (audio) {
-    audio.pause()
-    audio.src = ''
-    audio = null
-  }
-})
 </script>
 
 <style scoped>
@@ -337,5 +392,96 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 5px;              /* Call / Song 과 체크박스 간의 거리 */
   cursor: pointer;
+}
+
+/* 기본 레이아웃 */
+.search-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 40px auto;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #0078ff;
+}
+
+
+/* 히스토리 드롭다운 */
+.history-dropdown {
+  position: absolute;
+  /*top: 45px;*/
+  top: 80%; /* FIXME */
+  width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  animation: fadeIn 0.15s ease;
+}
+
+.history-item {
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.history-item:hover {
+  background-color: #f5f5f5;
+}
+
+.query-text {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time-text {
+  font-size: 12px;
+  color: #999;
+  margin-left: 10px;
+}
+
+/* fade 효과 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
