@@ -14,19 +14,15 @@
                 </label>
             </div>
 
-            <input v-model="query" class="search-input" @focus="showHistory = true" @keyup.enter="fetchRecordings"
-                placeholder="예: March tit" />
+            <input v-model="query" class="search-input" @focus="showHistory = true" @click="showHistory = true"
+                @keyup.enter="fetchRecordings" placeholder="예: March tit" />
             <transition name="fade">
                 <div v-if="showHistory && searchHistory.length > 0" class="history-dropdown">
                     <ul>
                         <li v-for="(item, idx) in searchHistory" :key="idx" @click="handleHistoryClick(item)"
                             class="history-item">
                             <span class="query-text">{{ item.query }}</span>
-                            <span class="time-text">
-                                {{ new Date(item.created_at).toLocaleTimeString([], {
-                                    hour: '2-digit', minute: '2-digit'
-                                }) }}
-                            </span>
+                            <span class="time-text"> {{ formatDateTime(item.created_at) }} </span>
                         </li>
                     </ul>
                 </div>
@@ -96,6 +92,7 @@ const isLooping = ref(false)
 
 const isLogin = ref(false);
 
+const searchHistory= ref([])
 const showHistory = ref(false)
 
 onMounted(async () => {
@@ -125,7 +122,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 
 })
-const searchHistory= ref([])
 
 async function handleSearch(searchQuery) {
   if (!searchQuery.value.trim()) return
@@ -133,7 +129,7 @@ async function handleSearch(searchQuery) {
   searchHistory.value = await getSearchHistory()
 }
 
-// ✅ 외부 클릭 시 dropdown 닫기
+// 외부 클릭 시 dropdown 닫기
 function handleClickOutside(e) {
   const searchBox = document.getElementById('search-container')
   if (searchBox && !searchBox.contains(e.target)) {
@@ -141,7 +137,7 @@ function handleClickOutside(e) {
   }
 }
 
-// ✅ 히스토리 클릭 시
+// 히스토리 클릭 시
 function handleHistoryClick(item) {
   query.value = item.query
   showHistory.value = false
@@ -317,6 +313,18 @@ function formatTime(sec) {
   const m = Math.floor(s / 60)
   const r = s % 60
   return `${m}:${r.toString().padStart(2, '0')}`
+}
+
+// history 날짜 포맷
+function formatDateTime(input) {
+  if (!input) return ''
+  const d = new Date(input)
+  if (isNaN(d)) return ''
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${mm}/${dd} ${hh}:${min}`
 }
 </script>
 
